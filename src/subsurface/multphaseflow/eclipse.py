@@ -10,11 +10,14 @@ from multiprocessing import Process
 import datetime as dt
 from scipy import interpolate
 from subprocess import call, DEVNULL
-from misc import ecl, grdecl
+from .misc import ecl, grdecl
 from shutil import rmtree, copytree  # rmtree for removing folders
 import time
 # import rips
 from glob import glob
+from resdata.summary import Summary
+from resfo_utilities import RFTReader
+import pandas as pd
 
 # Internal imports
 from misc.system_tools.environ_var import EclipseRunEnvironment
@@ -360,18 +363,48 @@ class eclipse:
                       dt.datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
 
     def extract_data(self, member):
-        # get the formated data
-        for prim_ind in self.l_prim:
-            # Loop over all keys in pred_data (all data types)
-            for key in self.all_data_types:
-                if self.pred_data[prim_ind][key] is not None:  # Obs. data at assim. step
-                    true_data_info = [self.true_prim[0], self.true_prim[1][prim_ind]]
-                    try:
-                        data_array = self.get_sim_results(key, true_data_info, member)
-                        self.pred_data[prim_ind][key] = data_array
-                    except:
-                        print(f'Failed to extract {key} at {prim_ind} for member {member}')
-                        pass
+        # Generate dataframe
+        # For now we use resdata. Migrate to resfo_utilities if possible, but this is not a priority.
+        case = Summary('En_' + str(member) + os.sep + self.file)
+        if self.true_prim[0] == 'days':
+            dt_times = [case.start_time + dt.timedelta(days=el) for el in self.true_prim[1]]
+            all_ecl_data = case.pandas_frame(time_index=dt_times)  # Get all
+        else:
+            all_ecl_data = case.pandas_frame(time_index=self.true_prim[1]) # This will interpolate is report is missing, or is slighly off.
+        
+        # Extract RFT data if present
+        try:
+            with RFTReader.open('En_' + str(member) + os.sep + self.file) as rft:
+                rft_values = list(rft)
+                rft_df = pd.DataFrame([
+                    {'date': elem.date, f"RFT:{elem.well}": elem['PRESSURE']} 
+                            for elem in rft_values]).set_index('date')
+                rft_df.index = pd.to_datetime(rft_df.index) # ensure datetime index for merging
+                all_ecl_data = pd.concat([all_ecl_data, rft_df], axis=1)
+        except FileNotFoundError:
+            # This is ok, no RFT data found.
+            pass
+        # reformat to PIPT structure. Note that some data might not be present in all_data. E.g. seismic data
+        # Convert DataFrame rows to list of dictionaries
+        for i, (_, row) in enumerate(all_ecl_data.iterrows()):
+            # Create a case-insensitive column lookup
+            col_map = {col.upper(): col for col in all_ecl_data.columns}
+            record = {key: np.array(row[col_map[key.upper()]]) if key.upper() in col_map else None for key in self.all_data_types}
+            self.pred_data[i] = record
+
+    # def extract_data(self, member):
+    #     # get the formated data
+    #     for prim_ind in self.l_prim:
+    #         # Loop over all keys in pred_data (all data types)
+    #         for key in self.all_data_types:
+    #             if self.pred_data[prim_ind][key] is not None:  # Obs. data at assim. step
+    #                 true_data_info = [self.true_prim[0], self.true_prim[1][prim_ind]]
+    #                 try:
+    #                     data_array = self.get_sim_results(key, true_data_info, member)
+    #                     self.pred_data[prim_ind][key] = data_array
+    #                 except:
+    #                     print(f'Failed to extract {key} at {prim_ind} for member {member}')
+    #                     pass
 
     def coarsen(self, folder, ensembleMember=None):
         """
@@ -846,6 +879,10 @@ class eclipse:
         """
         # Check that we have no trailing spaces
         whichResponse = whichResponse.strip()
+        case = Summary('En_' + str(member) + os.sep + self.file)
+
+        # Extract all data as df and dump
+        return case.pandas_frame()
 
         # if ensemble DA method
         if member is not None:
