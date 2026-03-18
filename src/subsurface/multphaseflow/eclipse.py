@@ -122,6 +122,8 @@ class eclipse:
         # Extract sim options
         simoptions = self.input_dict.get('simoptions', {})
         if isinstance(simoptions, list):
+            if not all(isinstance(item, list) for item in simoptions):
+                simoptions = [simoptions]
             simoptions = list_to_dict(simoptions)
 
         self.options = {}
