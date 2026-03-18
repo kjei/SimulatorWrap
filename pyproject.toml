@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -20,6 +20,8 @@ dependencies = [
   "scikit-learn",
   "jutuldarcy",
   "pandas",
+  "resdata",
+  "resfo_utilities",
 ]
 
 [project.urls]
