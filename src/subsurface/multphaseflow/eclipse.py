@@ -391,7 +391,7 @@ class eclipse:
         for i, (_, row) in enumerate(all_ecl_data.iterrows()):
             # Create a case-insensitive column lookup
             col_map = {col.upper(): col for col in all_ecl_data.columns}
-            record = {key: np.array(row[col_map[key.upper()]]) if key.upper() in col_map else None for key in self.all_data_types}
+            record = {key: row[col_map[key.upper()]] if key.upper() in col_map else None for key in self.all_data_types}
             self.pred_data[i] = record
 
     # def extract_data(self, member):
