@@ -61,6 +61,7 @@ class eclipse:
                 - rerun: in case of failure, try to rerun the simulator the given number of times
                 - startdate: simulaton start date
                 - saveforecast: save the predicted measurements for each iteration
+                - del_folder: delete the ensemble member folder after running the simulation
 
         filename : str, optional
             Name of the .mako file utilized to generate the ECL input .DATA file. Must be in uppercase for the
@@ -173,6 +174,11 @@ class eclipse:
             self.rerun = int(self.input_dict['rerun'])
         else:
             self.rerun = 0
+
+        if 'del_folder' in self.input_dict:
+            self.del_folder = self.input_dict['del_folder']
+        else:
+            self.del_folder = True
 
         # If we want to extract, or evaluate, something uniquely from the ensemble specific run we can
         # run a user defined code to do this.
@@ -296,7 +302,7 @@ class eclipse:
             Index of the ensemble member.
 
         del_folder : bool, optional
-            Boolean to determine if the ensemble folder should be deleted. Default is False.
+            Boolean to determine if the ensemble folder should be deleted. Default is True.
 
         nosim : bool, optional
             Boolean to determine if the simulation should be run. Default is False.
@@ -307,6 +313,7 @@ class eclipse:
             state['level'] = -1  # default value
         os.mkdir('En_' + str(member_i))
         folder = 'En_' + str(member_i) + os.sep
+        del_folder = self.del_folder and del_folder  # False if either input or class attribute is False
 
         state['member'] = member_i
         # If the run is upscaled, run the upscaling procedure
