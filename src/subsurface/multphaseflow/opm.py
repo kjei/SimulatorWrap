@@ -156,8 +156,10 @@ class flow(eclipse):
 #SBATCH --ntasks={n_tasks}                                                                                          
 #SBATCH --cpus-per-task=2                                                                                 
 #SBATCH --export=ALL                                                                                      
-#SBATCH --output=logs/job_%A_%a.out
-#SBATCH --error=logs/job_%A_%a.err                                                                            
+#SBATCH --output=/dev/null
+#SBATCH --error=/dev/null
+exec > /dev/null 2>&1
+                                                                            
 
 # OPTIONAL: load modules here                                                                             
 module load Python{python_ver}                                                                                        
@@ -183,7 +185,11 @@ python -m subsurface.multphaseflow.opm "$folder" {filename_str} {mpi_str}
 
         # Submit the script to SLURM
         cmd = ["sbatch", script_name]
-        result = run(cmd, capture_output=True, text=True)
+        try:
+            result = run(cmd, capture_output=True, text=True, timeout=30)
+        except Exception as e:
+            print(f"sbatch failed: {e}", flush=True)
+            return None
 
         # remove script file
         os.remove(script_name)
