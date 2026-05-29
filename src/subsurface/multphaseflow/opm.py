@@ -123,7 +123,7 @@ class flow(eclipse):
         filename_str = f'"{filename.upper()}"' if filename is not None else ""
     
         # Ensure logs/ exists BEFORE writing script or running sbatch
-        os.makedirs("logs", exist_ok=True)
+        # os.makedirs("logs", exist_ok=True)
 
         # Extract mpi flag from kwargs
         mpi = kwargs.get("mpi", None)
@@ -160,7 +160,6 @@ class flow(eclipse):
 #SBATCH --error=/dev/null
 exec > /dev/null 2>&1
                                                                             
-
 # OPTIONAL: load modules here                                                                             
 module load Python{python_ver}                                                                                        
 export LMOD_DISABLE_SAME_NAME_AUTOSWAP=no                                                                 
